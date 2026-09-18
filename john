@@ -1,0 +1,2714 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const SmartVaultApp());
+}
+
+// ============================================================
+// SMART VAULT - AI FILE MANAGER
+// Frontend-only Flutter application
+// No external packages required
+// ============================================================
+
+class SmartVaultApp extends StatefulWidget {
+  const SmartVaultApp({super.key});
+
+  @override
+  State<SmartVaultApp> createState() => _SmartVaultAppState();
+}
+
+class _SmartVaultAppState extends State<SmartVaultApp> {
+  bool darkMode = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Smart Vault',
+      themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        colorSchemeSeed: const Color(0xFF6C63FF),
+        scaffoldBackgroundColor: const Color(0xFFF5F7FB),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorSchemeSeed: const Color(0xFF7C6CFF),
+        scaffoldBackgroundColor: const Color(0xFF080A12),
+        cardColor: const Color(0xFF111522),
+      ),
+      home: SmartVaultHome(
+        darkMode: darkMode,
+        onThemeChanged: (value) {
+          setState(() {
+            darkMode = value;
+          });
+        },
+      ),
+    );
+  }
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+class VaultFile {
+  final String name;
+  final String type;
+  final String size;
+  final String date;
+  final IconData icon;
+  final Color color;
+  final bool favorite;
+  final bool secure;
+
+  const VaultFile({
+    required this.name,
+    required this.type,
+    required this.size,
+    required this.date,
+    required this.icon,
+    required this.color,
+    this.favorite = false,
+    this.secure = false,
+  });
+}
+
+// ============================================================
+// HOME
+// ============================================================
+
+class SmartVaultHome extends StatefulWidget {
+  final bool darkMode;
+  final ValueChanged<bool> onThemeChanged;
+
+  const SmartVaultHome({
+    super.key,
+    required this.darkMode,
+    required this.onThemeChanged,
+  });
+
+  @override
+  State<SmartVaultHome> createState() => _SmartVaultHomeState();
+}
+
+class _SmartVaultHomeState extends State<SmartVaultHome> {
+  int selectedPage = 0;
+  bool gridView = true;
+  String searchText = '';
+
+  final TextEditingController searchController = TextEditingController();
+
+  final List<VaultFile> files = [
+    const VaultFile(
+      name: 'Project Presentation',
+      type: 'PPTX',
+      size: '24.8 MB',
+      date: 'Today, 10:42 AM',
+      icon: Icons.slideshow_rounded,
+      color: Color(0xFFFF7043),
+      favorite: true,
+    ),
+    const VaultFile(
+      name: 'AI Research Paper',
+      type: 'PDF',
+      size: '8.4 MB',
+      date: 'Today, 09:18 AM',
+      icon: Icons.picture_as_pdf_rounded,
+      color: Color(0xFFE53935),
+    ),
+    const VaultFile(
+      name: 'College Documents',
+      type: 'Folder',
+      size: '1.8 GB',
+      date: 'Yesterday',
+      icon: Icons.folder_rounded,
+      color: Color(0xFFFFC107),
+      favorite: true,
+    ),
+    const VaultFile(
+      name: 'Vacation Photos',
+      type: 'Images',
+      size: '428 MB',
+      date: 'Yesterday',
+      icon: Icons.photo_library_rounded,
+      color: Color(0xFF42A5F5),
+    ),
+    const VaultFile(
+      name: 'Flutter Project',
+      type: 'Folder',
+      size: '2.4 GB',
+      date: 'Sep 17, 2026',
+      icon: Icons.folder_rounded,
+      color: Color(0xFF00BCD4),
+    ),
+    const VaultFile(
+      name: 'Financial Notes',
+      type: 'PDF',
+      size: '5.2 MB',
+      date: 'Sep 16, 2026',
+      icon: Icons.description_rounded,
+      color: Color(0xFF66BB6A),
+      secure: true,
+    ),
+    const VaultFile(
+      name: 'Smart Vault UI',
+      type: 'ZIP',
+      size: '142 MB',
+      date: 'Sep 15, 2026',
+      icon: Icons.archive_rounded,
+      color: Color(0xFFAB47BC),
+    ),
+    const VaultFile(
+      name: 'Profile Photo',
+      type: 'JPG',
+      size: '4.6 MB',
+      date: 'Sep 14, 2026',
+      icon: Icons.image_rounded,
+      color: Color(0xFFEC407A),
+      favorite: true,
+    ),
+    const VaultFile(
+      name: 'Database Backup',
+      type: 'SQL',
+      size: '86 MB',
+      date: 'Sep 13, 2026',
+      icon: Icons.storage_rounded,
+      color: Color(0xFF26A69A),
+      secure: true,
+    ),
+    const VaultFile(
+      name: 'Resume 2026',
+      type: 'PDF',
+      size: '2.8 MB',
+      date: 'Sep 12, 2026',
+      icon: Icons.badge_rounded,
+      color: Color(0xFF5C6BC0),
+      favorite: true,
+    ),
+  ];
+
+  List<VaultFile> get filteredFiles {
+    if (searchText.trim().isEmpty) {
+      return files;
+    }
+
+    return files
+        .where(
+          (file) =>
+      file.name.toLowerCase().contains(searchText.toLowerCase()) ||
+          file.type.toLowerCase().contains(searchText.toLowerCase()),
+    )
+        .toList();
+  }
+
+  final List<String> pageTitles = [
+    'Dashboard',
+    'My Files',
+    'Recent Files',
+    'Favorites',
+    'Secure Vault',
+    'AI Assistant',
+    'Settings',
+  ];
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  void openSearch() {
+    showSearch(
+      context: context,
+      delegate: SmartVaultSearchDelegate(files),
+    );
+  }
+
+  void selectPage(int index) {
+    setState(() {
+      selectedPage = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Row(
+        children: [
+          _buildSidebar(),
+          Expanded(
+            child: Column(
+              children: [
+                _buildTopBar(),
+                Expanded(child: _buildCurrentPage()),
+              ],
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: selectedPage == 5
+          ? null
+          : FloatingActionButton.extended(
+        onPressed: _showAddMenu,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Add'),
+      ),
+    );
+  }
+
+  // ==========================================================
+  // SIDEBAR
+  // ==========================================================
+
+  Widget _buildSidebar() {
+    return Container(
+      width: 250,
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF0D101A)
+            : Colors.white,
+        border: Border(
+          right: BorderSide(
+            color: Theme.of(context).dividerColor.withOpacity(.15),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 16, 25),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF6C63FF),
+                          Color(0xFF9C6CFF),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6C63FF).withOpacity(.35),
+                          blurRadius: 20,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.shield_rounded,
+                      color: Colors.white,
+                      size: 27,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'SMART',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        Text(
+                          'VAULT',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            _navItem(
+              0,
+              Icons.dashboard_rounded,
+              'Dashboard',
+            ),
+            _navItem(
+              1,
+              Icons.folder_copy_rounded,
+              'My Files',
+            ),
+            _navItem(
+              2,
+              Icons.history_rounded,
+              'Recent Files',
+            ),
+            _navItem(
+              3,
+              Icons.star_rounded,
+              'Favorites',
+            ),
+
+            const SizedBox(height: 12),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Divider(
+                      color: Theme.of(context).dividerColor.withOpacity(.2),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    child: Text(
+                      'SECURITY',
+                      style: TextStyle(
+                        fontSize: 9,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(
+                      color: Theme.of(context).dividerColor.withOpacity(.2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            _navItem(
+              4,
+              Icons.security_rounded,
+              'Secure Vault',
+            ),
+            _navItem(
+              5,
+              Icons.auto_awesome_rounded,
+              'AI Assistant',
+            ),
+
+            const Spacer(),
+
+            _storageCard(),
+
+            const SizedBox(height: 10),
+
+            _navItem(
+              6,
+              Icons.settings_rounded,
+              'Settings',
+            ),
+
+            const SizedBox(height: 12),
+
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: const Color(0xFF6C63FF),
+                    child: const Text(
+                      'N',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'User',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Personal Vault',
+                          style: TextStyle(
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.more_vert_rounded),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem(
+      int index,
+      IconData icon,
+      String title,
+      ) {
+    final selected = selectedPage == index;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(13),
+        onTap: () => selectPage(index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
+          ),
+          decoration: BoxDecoration(
+            gradient: selected
+                ? const LinearGradient(
+              colors: [
+                Color(0xFF6C63FF),
+                Color(0xFF826CFF),
+              ],
+            )
+                : null,
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: selected
+                    ? Colors.white
+                    : Theme.of(context).iconTheme.color,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  color: selected ? Colors.white : null,
+                  fontWeight:
+                  selected ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _storageCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF6C63FF).withOpacity(.20),
+            const Color(0xFF00BCD4).withOpacity(.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(
+          color: const Color(0xFF6C63FF).withOpacity(.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.cloud_done_rounded,
+                size: 18,
+                color: Color(0xFF8C7CFF),
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Storage',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: LinearProgressIndicator(
+              value: .67,
+              minHeight: 7,
+              backgroundColor: Colors.grey.withOpacity(.2),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '67.4 GB used',
+                style: TextStyle(fontSize: 11),
+              ),
+              Text(
+                '100 GB',
+                style: TextStyle(fontSize: 11),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // TOP BAR
+  // ==========================================================
+
+  Widget _buildTopBar() {
+    return Container(
+      height: 76,
+      padding: const EdgeInsets.symmetric(horizontal: 25),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).dividerColor.withOpacity(.12),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              pageTitles[selectedPage],
+              style: const TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+
+          // Search
+          SizedBox(
+            width: 310,
+            height: 44,
+            child: TextField(
+              controller: searchController,
+              onChanged: (value) {
+                setState(() {
+                  searchText = value;
+                  if (value.isNotEmpty) {
+                    selectedPage = 1;
+                  }
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Search files...',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: searchText.isEmpty
+                    ? null
+                    : IconButton(
+                  onPressed: () {
+                    searchController.clear();
+                    setState(() {
+                      searchText = '';
+                    });
+                  },
+                  icon: const Icon(Icons.close_rounded),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).cardColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          IconButton(
+            tooltip: 'Advanced Search',
+            onPressed: openSearch,
+            icon: const Icon(Icons.manage_search_rounded),
+          ),
+
+          IconButton(
+            tooltip: 'Notifications',
+            onPressed: _showNotifications,
+            icon: const Icon(Icons.notifications_none_rounded),
+          ),
+
+          const SizedBox(width: 5),
+
+          CircleAvatar(
+            radius: 21,
+            backgroundColor: const Color(0xFF6C63FF),
+            child: const Text(
+              'N',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // PAGE SWITCHER
+  // ==========================================================
+
+  Widget _buildCurrentPage() {
+    switch (selectedPage) {
+      case 0:
+        return _dashboardPage();
+      case 1:
+        return _filesPage();
+      case 2:
+        return _recentPage();
+      case 3:
+        return _favoritesPage();
+      case 4:
+        return _secureVaultPage();
+      case 5:
+        return _aiPage();
+      case 6:
+        return _settingsPage();
+      default:
+        return _dashboardPage();
+    }
+  }
+
+  // ==========================================================
+  // DASHBOARD
+  // ==========================================================
+
+  Widget _dashboardPage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _welcomeBanner(),
+
+          const SizedBox(height: 25),
+
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+
+              if (width < 900) {
+                return Column(
+                  children: [
+                    _statCard(
+                      'Total Files',
+                      '1,284',
+                      '+12.4%',
+                      Icons.insert_drive_file_rounded,
+                      const Color(0xFF6C63FF),
+                    ),
+                    const SizedBox(height: 12),
+                    _statCard(
+                      'Storage Used',
+                      '67.4 GB',
+                      '67%',
+                      Icons.cloud_rounded,
+                      const Color(0xFF00BCD4),
+                    ),
+                    const SizedBox(height: 12),
+                    _statCard(
+                      'Secure Files',
+                      '184',
+                      '+24',
+                      Icons.security_rounded,
+                      const Color(0xFF43A047),
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(
+                    child: _statCard(
+                      'Total Files',
+                      '1,284',
+                      '+12.4%',
+                      Icons.insert_drive_file_rounded,
+                      const Color(0xFF6C63FF),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _statCard(
+                      'Storage Used',
+                      '67.4 GB',
+                      '67%',
+                      Icons.cloud_rounded,
+                      const Color(0xFF00BCD4),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _statCard(
+                      'Secure Files',
+                      '184',
+                      '+24',
+                      Icons.security_rounded,
+                      const Color(0xFF43A047),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+
+          const SizedBox(height: 28),
+
+          Row(
+            children: [
+              const Text(
+                'Quick Access',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => selectPage(1),
+                child: const Text('View all'),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          _quickAccess(),
+
+          const SizedBox(height: 30),
+
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 850) {
+                return Column(
+                  children: [
+                    _recentPanel(),
+                    const SizedBox(height: 20),
+                    _aiInsightPanel(),
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 3, child: _recentPanel()),
+                  const SizedBox(width: 20),
+                  Expanded(flex: 2, child: _aiInsightPanel()),
+                ],
+              );
+            },
+          ),
+
+          const SizedBox(height: 30),
+
+          _activityPanel(),
+        ],
+      ),
+    );
+  }
+
+  Widget _welcomeBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF24204B),
+            Color(0xFF4B3BA8),
+            Color(0xFF1A5871),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6C63FF).withOpacity(.25),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: 30,
+            top: -30,
+            child: Container(
+              width: 170,
+              height: 170,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(.06),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 120,
+            bottom: -80,
+            child: Container(
+              width: 190,
+              height: 190,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.cyan.withOpacity(.05),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'GOOD EVENING 👋',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Your digital world,\nsecurely organized.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                        height: 1.15,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Smart Vault uses AI-powered organization to help you find and manage your files faster.',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () => selectPage(5),
+                      icon: const Icon(Icons.auto_awesome_rounded),
+                      label: const Text('Ask Smart AI'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF5146A5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (MediaQuery.of(context).size.width > 700)
+                Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(.08),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(.15),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.shield_moon_rounded,
+                    size: 95,
+                    color: Colors.white,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statCard(
+      String title,
+      String value,
+      String change,
+      IconData icon,
+      Color color,
+      ) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(.12),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withOpacity(.13),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            change,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickAccess() {
+    final folders = [
+      (
+      'Documents',
+      Icons.folder_rounded,
+      const Color(0xFFFFC107),
+      '246 files'
+      ),
+      (
+      'Images',
+      Icons.photo_library_rounded,
+      const Color(0xFF42A5F5),
+      '482 files'
+      ),
+      (
+      'Projects',
+      Icons.folder_special_rounded,
+      const Color(0xFF00BCD4),
+      '34 folders'
+      ),
+      (
+      'Downloads',
+      Icons.download_rounded,
+      const Color(0xFF66BB6A),
+      '189 files'
+      ),
+      (
+      'Secure',
+      Icons.security_rounded,
+      const Color(0xFFAB47BC),
+      '184 files'
+      ),
+    ];
+
+    return SizedBox(
+      height: 145,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: folders.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        itemBuilder: (context, index) {
+          final folder = folders[index];
+
+          return GestureDetector(
+            onTap: () => selectPage(
+              index == 4 ? 4 : 1,
+            ),
+            child: Container(
+              width: 175,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .dividerColor
+                      .withOpacity(.12),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 47,
+                    height: 47,
+                    decoration: BoxDecoration(
+                      color: folder.$3.withOpacity(.13),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      folder.$2,
+                      color: folder.$3,
+                      size: 25,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    folder.$1,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    folder.$4,
+                    style: const TextStyle(
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _recentPanel() {
+    return _panel(
+      title: 'Recent Files',
+      icon: Icons.history_rounded,
+      action: TextButton(
+        onPressed: () => selectPage(2),
+        child: const Text('View all'),
+      ),
+      child: Column(
+        children: files.take(5).map(_compactFileTile).toList(),
+      ),
+    );
+  }
+
+  Widget _compactFileTile(VaultFile file) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => _openFile(file),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 10,
+          horizontal: 4,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 43,
+              height: 43,
+              decoration: BoxDecoration(
+                color: file.color.withOpacity(.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                file.icon,
+                color: file.color,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    file.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${file.type} • ${file.size}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              file.date,
+              style: const TextStyle(
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _aiInsightPanel() {
+    return _panel(
+      title: 'AI Insights',
+      icon: Icons.auto_awesome_rounded,
+      child: Column(
+        children: [
+          _insight(
+            Icons.folder_rounded,
+            '24 files need organization',
+            'Smart AI found files that could be grouped.',
+          ),
+          const SizedBox(height: 15),
+          _insight(
+            Icons.warning_amber_rounded,
+            '3 duplicate files',
+            'Potential duplicates were detected.',
+          ),
+          const SizedBox(height: 15),
+          _insight(
+            Icons.lock_rounded,
+            'Vault is protected',
+            'Your secure files are encrypted.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _insight(
+      IconData icon,
+      String title,
+      String description,
+      ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: const Color(0xFF6C63FF).withOpacity(.12),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xFF8B7CFF),
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _activityPanel() {
+    return _panel(
+      title: 'Activity Overview',
+      icon: Icons.analytics_rounded,
+      child: SizedBox(
+        height: 190,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(
+            12,
+                (index) {
+              final heights = [
+                70.0,
+                95.0,
+                55.0,
+                120.0,
+                85.0,
+                145.0,
+                110.0,
+                155.0,
+                90.0,
+                130.0,
+                105.0,
+                160.0,
+              ];
+
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    width: 18,
+                    height: heights[index],
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Color(0xFF6C63FF),
+                          Color(0xFF9D8FFF),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${index + 1}',
+                    style: const TextStyle(fontSize: 9),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _panel({
+    required String title,
+    required IconData icon,
+    required Widget child,
+    Widget? action,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(.12),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 19,
+                color: const Color(0xFF8B7CFF),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              if (action != null) action,
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // FILES PAGE
+  // ==========================================================
+
+  Widget _filesPage() {
+    final data = filteredFiles;
+
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _filterButton('All Files', true),
+              const SizedBox(width: 8),
+              _filterButton('Documents', false),
+              const SizedBox(width: 8),
+              _filterButton('Images', false),
+              const SizedBox(width: 8),
+              _filterButton('Folders', false),
+              const Spacer(),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    gridView = true;
+                  });
+                },
+                icon: Icon(
+                  Icons.grid_view_rounded,
+                  color: gridView
+                      ? const Color(0xFF8B7CFF)
+                      : null,
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    gridView = false;
+                  });
+                },
+                icon: Icon(
+                  Icons.view_list_rounded,
+                  color: !gridView
+                      ? const Color(0xFF8B7CFF)
+                      : null,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          Expanded(
+            child: data.isEmpty
+                ? _emptyState()
+                : gridView
+                ? _fileGrid(data)
+                : _fileList(data),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterButton(String title, bool active) {
+    return FilterChip(
+      selected: active,
+      label: Text(title),
+      onSelected: (_) {},
+      selectedColor: const Color(0xFF6C63FF).withOpacity(.18),
+    );
+  }
+
+  Widget _fileGrid(List<VaultFile> data) {
+    return GridView.builder(
+      padding: const EdgeInsets.only(bottom: 80),
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 260,
+        mainAxisExtent: 225,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: data.length,
+      itemBuilder: (context, index) {
+        return _fileCard(data[index]);
+      },
+    );
+  }
+
+  Widget _fileCard(VaultFile file) {
+    return GestureDetector(
+      onTap: () => _openFile(file),
+      onSecondaryTap: () => _showFileMenu(file),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withOpacity(.12),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 55,
+                  height: 55,
+                  decoration: BoxDecoration(
+                    color: file.color.withOpacity(.13),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    file.icon,
+                    size: 29,
+                    color: file.color,
+                  ),
+                ),
+                const Spacer(),
+                if (file.secure)
+                  const Icon(
+                    Icons.lock_rounded,
+                    size: 17,
+                    color: Color(0xFF66BB6A),
+                  ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_horiz_rounded),
+                  onSelected: (value) {
+                    _fileAction(value, file);
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: 'open',
+                      child: Text('Open'),
+                    ),
+                    PopupMenuItem(
+                      value: 'favorite',
+                      child: Text('Add to favorites'),
+                    ),
+                    PopupMenuItem(
+                      value: 'secure',
+                      child: Text('Move to vault'),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              file.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${file.type} • ${file.size}',
+              style: const TextStyle(
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              file.date,
+              style: const TextStyle(
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _fileList(List<VaultFile> data) {
+    return ListView.separated(
+      padding: const EdgeInsets.only(bottom: 80),
+      itemCount: data.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final file = data[index];
+
+        return Container(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: file.color.withOpacity(.13),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  file.icon,
+                  color: file.color,
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Text(
+                  file.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 100,
+                child: Text(
+                  file.type,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              SizedBox(
+                width: 100,
+                child: Text(
+                  file.size,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              SizedBox(
+                width: 150,
+                child: Text(
+                  file.date,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              PopupMenuButton<String>(
+                onSelected: (value) => _fileAction(value, file),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'open',
+                    child: Text('Open'),
+                  ),
+                  PopupMenuItem(
+                    value: 'favorite',
+                    child: Text('Favorite'),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Delete'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 80,
+            color: Colors.grey.withOpacity(.5),
+          ),
+          const SizedBox(height: 15),
+          const Text(
+            'No files found',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 7),
+          const Text(
+            'Try another search term.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // RECENT
+  // ==========================================================
+
+  Widget _recentPage() {
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Your recently accessed files',
+            style: TextStyle(
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: ListView.builder(
+              itemCount: files.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _recentLargeCard(files[index]),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _recentLargeCard(VaultFile file) {
+    return Card(
+      elevation: 0,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
+        leading: Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: file.color.withOpacity(.12),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(
+            file.icon,
+            color: file.color,
+          ),
+        ),
+        title: Text(
+          file.name,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          '${file.type} • ${file.size} • ${file.date}',
+        ),
+        trailing: IconButton(
+          onPressed: () => _openFile(file),
+          icon: const Icon(Icons.arrow_forward_ios_rounded),
+        ),
+      ),
+    );
+  }
+
+  // ==========================================================
+  // FAVORITES
+  // ==========================================================
+
+  Widget _favoritesPage() {
+    final favorites = files.where((f) => f.favorite).toList();
+
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Quickly access your important files.',
+            style: TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: GridView.builder(
+              gridDelegate:
+              const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 270,
+                mainAxisExtent: 215,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: favorites.length,
+              itemBuilder: (_, index) {
+                return _fileCard(favorites[index]);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // SECURE VAULT
+  // ==========================================================
+
+  Widget _secureVaultPage() {
+    final secureFiles = files.where((f) => f.secure).toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF14251D),
+                  Color(0xFF193B2C),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 85,
+                  height: 85,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF66BB6A).withOpacity(.14),
+                    border: Border.all(
+                      color: const Color(0xFF66BB6A).withOpacity(.3),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.shield_rounded,
+                    size: 45,
+                    color: Color(0xFF66BB6A),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Your Vault is Secure',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Protected files are separated from your regular files.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: _showAddMenu,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Add Secure File'),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 25),
+
+          Row(
+            children: [
+              const Text(
+                'Protected Files',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              Text('${secureFiles.length} files'),
+            ],
+          ),
+
+          const SizedBox(height: 15),
+
+          ...secureFiles.map(
+                (file) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Card(
+                elevation: 0,
+                child: ListTile(
+                  leading: Container(
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      color: file.color.withOpacity(.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      file.icon,
+                      color: file.color,
+                    ),
+                  ),
+                  title: Text(
+                    file.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${file.type} • ${file.size}',
+                  ),
+                  trailing: const Icon(
+                    Icons.lock_rounded,
+                    color: Color(0xFF66BB6A),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // AI PAGE
+  // ==========================================================
+
+  Widget _aiPage() {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 950),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF6C63FF),
+                      Color(0xFF00BCD4),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(27),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6C63FF).withOpacity(.3),
+                      blurRadius: 30,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 45,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              const Text(
+                'Smart AI',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+
+              const SizedBox(height: 7),
+
+              const Text(
+                'Your intelligent file management assistant',
+                style: TextStyle(fontSize: 14),
+              ),
+
+              const SizedBox(height: 30),
+
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(25),
+                    border: Border.all(
+                      color: Theme.of(context)
+                          .dividerColor
+                          .withOpacity(.12),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: ListView(
+                          children: [
+                            _aiMessage(
+                              'Hello! I am Smart AI 👋',
+                              'I can help you organize, search, analyze and protect your files.',
+                              true,
+                            ),
+                            _aiMessage(
+                              'Try asking:',
+                              '“Find my PDF files”\n“Show large files”\n“Find duplicate files”\n“Organize my documents”',
+                              true,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      _aiInput(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _aiMessage(
+      String title,
+      String message,
+      bool ai,
+      ) {
+    return Align(
+      alignment:
+      ai ? Alignment.centerLeft : Alignment.centerRight,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 650),
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: ai
+              ? const Color(0xFF6C63FF).withOpacity(.10)
+              : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(17),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              message,
+              style: const TextStyle(
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _aiInput() {
+    final controller = TextEditingController();
+
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: 'Ask Smart AI anything...',
+              prefixIcon: const Icon(
+                Icons.auto_awesome_rounded,
+              ),
+              filled: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        IconButton.filled(
+          onPressed: () {
+            if (controller.text.trim().isEmpty) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'AI is analyzing: ${controller.text}',
+                ),
+              ),
+            );
+
+            controller.clear();
+          },
+          icon: const Icon(Icons.send_rounded),
+        ),
+      ],
+    );
+  }
+
+  // ==========================================================
+  // SETTINGS
+  // ==========================================================
+
+  Widget _settingsPage() {
+    return ListView(
+      padding: const EdgeInsets.all(28),
+      children: [
+        _settingsSection(
+          'Appearance',
+          [
+            SwitchListTile(
+              secondary: const Icon(Icons.dark_mode_rounded),
+              title: const Text('Dark Mode'),
+              subtitle: const Text(
+                'Use the futuristic dark interface',
+              ),
+              value: widget.darkMode,
+              onChanged: widget.onThemeChanged,
+            ),
+            ListTile(
+              leading: const Icon(Icons.palette_rounded),
+              title: const Text('Accent Color'),
+              subtitle: const Text('Purple / Cyber style'),
+              trailing: Container(
+                width: 30,
+                height: 30,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF6C63FF),
+                      Color(0xFF00BCD4),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 18),
+
+        _settingsSection(
+          'Security',
+          [
+            SwitchListTile(
+              secondary: const Icon(Icons.fingerprint_rounded),
+              title: const Text('Biometric Protection'),
+              subtitle: const Text(
+                'Protect your secure vault',
+              ),
+              value: true,
+              onChanged: (_) {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.password_rounded),
+              title: const Text('Change Vault Password'),
+              trailing:
+              const Icon(Icons.chevron_right_rounded),
+              onTap: () {},
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 18),
+
+        _settingsSection(
+          'AI Features',
+          [
+            SwitchListTile(
+              secondary: const Icon(
+                Icons.auto_awesome_rounded,
+              ),
+              title: const Text('Smart Organization'),
+              subtitle: const Text(
+                'Automatically categorize files',
+              ),
+              value: true,
+              onChanged: (_) {},
+            ),
+            SwitchListTile(
+              secondary: const Icon(Icons.search_rounded),
+              title: const Text('AI Search'),
+              subtitle: const Text(
+                'Search files using natural language',
+              ),
+              value: true,
+              onChanged: (_) {},
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 18),
+
+        _settingsSection(
+          'Application',
+          [
+            ListTile(
+              leading: const Icon(Icons.info_outline_rounded),
+              title: const Text('About Smart Vault'),
+              trailing:
+              const Icon(Icons.chevron_right_rounded),
+              onTap: _showAbout,
+            ),
+            ListTile(
+              leading: const Icon(Icons.help_outline_rounded),
+              title: const Text('Help & Support'),
+              trailing:
+              const Icon(Icons.chevron_right_rounded),
+              onTap: () {},
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _settingsSection(
+      String title,
+      List<Widget> children,
+      ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(.12),
+        ),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              18,
+              20,
+              8,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 17,
+                ),
+              ),
+            ),
+          ),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // ACTIONS
+  // ==========================================================
+
+  void _openFile(VaultFile file) {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                file.icon,
+                color: file.color,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  file.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.description_rounded,
+                size: 80,
+                color: Color(0xFF6C63FF),
+              ),
+              const SizedBox(height: 15),
+              Text(
+                '${file.type} • ${file.size}',
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Modified: ${file.date}',
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Opening ${file.name}',
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.open_in_new_rounded),
+              label: const Text('Open'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showFileMenu(VaultFile file) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.open_in_new_rounded),
+                title: const Text('Open'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openFile(file);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.star_rounded),
+                title: const Text('Add to favorites'),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.lock_rounded),
+                title: const Text('Move to Secure Vault'),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded),
+                title: const Text('Delete'),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _fileAction(String action, VaultFile file) {
+    switch (action) {
+      case 'open':
+        _openFile(file);
+        break;
+
+      case 'favorite':
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${file.name} added to favorites',
+            ),
+          ),
+        );
+        break;
+
+      case 'secure':
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${file.name} moved to Secure Vault',
+            ),
+          ),
+        );
+        break;
+
+      case 'delete':
+        _confirmDelete(file);
+        break;
+    }
+  }
+
+  void _confirmDelete(VaultFile file) {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text('Delete file?'),
+          content: Text(
+            'Are you sure you want to delete "${file.name}"?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('File deleted'),
+                  ),
+                );
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAddMenu() {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (_) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Add to Smart Vault',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                ListTile(
+                  leading: const Icon(
+                    Icons.upload_file_rounded,
+                    color: Color(0xFF6C63FF),
+                  ),
+                  title: const Text('Upload File'),
+                  subtitle: const Text(
+                    'Choose files from your device',
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _fakeUpload();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.create_new_folder_rounded,
+                    color: Color(0xFFFFC107),
+                  ),
+                  title: const Text('Create Folder'),
+                  subtitle: const Text(
+                    'Create a new folder',
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _createFolder();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.lock_rounded,
+                    color: Color(0xFF66BB6A),
+                  ),
+                  title: const Text('Secure File'),
+                  subtitle: const Text(
+                    'Add directly to your vault',
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    selectPage(4);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _fakeUpload() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Upload interface opened — backend can be connected later.',
+        ),
+      ),
+    );
+  }
+
+  void _createFolder() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text('Create Folder'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'Folder name',
+              prefixIcon: Icon(Icons.folder_rounded),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context);
+
+                if (controller.text.trim().isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Folder "${controller.text}" created',
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showNotifications() {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.notifications_rounded),
+              SizedBox(width: 10),
+              Text('Notifications'),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Color(0xFF6C63FF),
+                ),
+                title: Text('AI found duplicate files'),
+                subtitle: Text('3 possible duplicates'),
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.security_rounded,
+                  color: Color(0xFF66BB6A),
+                ),
+                title: Text('Vault protected'),
+                subtitle: Text('Everything is secure'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAbout() {
+    showAboutDialog(
+      context: context,
+      applicationName: 'Smart Vault',
+      applicationVersion: '1.0.0',
+      applicationIcon: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: const Color(0xFF6C63FF),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(
+          Icons.shield_rounded,
+          color: Colors.white,
+        ),
+      ),
+      children: const [
+        Text(
+          'AI-powered futuristic file manager frontend.',
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================
+// SEARCH DELEGATE
+// ============================================================
+
+class SmartVaultSearchDelegate
+    extends SearchDelegate<VaultFile?> {
+  final List<VaultFile> files;
+
+  SmartVaultSearchDelegate(this.files);
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      if (query.isNotEmpty)
+        IconButton(
+          onPressed: () {
+            query = '';
+          },
+          icon: const Icon(Icons.clear_rounded),
+        ),
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      onPressed: () {
+        close(context, null);
+      },
+      icon: const Icon(Icons.arrow_back_rounded),
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    final results = files.where((file) {
+      return file.name.toLowerCase().contains(
+        query.toLowerCase(),
+      );
+    }).toList();
+
+    if (results.isEmpty) {
+      return const Center(
+        child: Text('No matching files'),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: results.length,
+      itemBuilder: (_, index) {
+        final file = results[index];
+
+        return Card(
+          child: ListTile(
+            leading: Icon(
+              file.icon,
+              color: file.color,
+            ),
+            title: Text(file.name),
+            subtitle: Text(
+              '${file.type} • ${file.size}',
+            ),
+            onTap: () {
+              close(context, file);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final results = files.where((file) {
+      return file.name.toLowerCase().contains(
+        query.toLowerCase(),
+      );
+    }).toList();
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: results.length,
+      itemBuilder: (_, index) {
+        final file = results[index];
+
+        return ListTile(
+          leading: Icon(
+            file.icon,
+            color: file.color,
+          ),
+          title: Text(file.name),
+          subtitle: Text(file.type),
+          onTap: () {
+            query = file.name;
+            showResults(context);
+          },
+        );
+      },
+    );
+  }
+}
